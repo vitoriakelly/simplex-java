@@ -10,7 +10,10 @@ import java.nio.charset.StandardCharsets;
 import br.ufc.simplex.io.ProblemReader;
 import br.ufc.simplex.solver.TwoPhaseSimplex;
 import br.ufc.simplex.solver.SolutionStatus;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -176,6 +179,75 @@ class TwoPhaseSimplexTest {
         assertEquals(1, result.cleanupIterations());
         assertEquals(0, result.phaseTwoIterations());
         assertEquals(2, result.totalIterations());
+    }
+
+    @Test
+    void deveRejeitarQuantidadeDeVariaveisInvalida()
+            throws Exception {
+
+        ProblemReader reader = new ProblemReader();
+
+        IllegalArgumentException exception
+                = assertThrows(
+                        IllegalArgumentException.class,
+                        () -> reader.read("entradas/invalido01.txt")
+                );
+
+        assertTrue(
+                exception.getMessage().contains(
+                        "A quantidade de variaveis deve ser maior que zero"
+                )
+        );
+    }
+
+    @Test
+    void deveRejeitarArquivoIncompleto()
+            throws Exception {
+
+        ProblemReader reader = new ProblemReader();
+
+        IllegalArgumentException exception
+                = assertThrows(
+                        IllegalArgumentException.class,
+                        () -> reader.read("entradas/invalido02.txt")
+                );
+
+        assertTrue(
+                exception.getMessage().contains("Arquivo incompleto")
+        );
+    }
+
+    @Test
+    void deveRejeitarArquivoComDadosExtras()
+            throws Exception {
+
+        ProblemReader reader = new ProblemReader();
+
+        Path arquivo = Files.createTempFile(
+                "simplex-invalido-", ".txt"
+        );
+
+        try {
+            Files.writeString(
+                    arquivo,
+                    "2\n3 4\n0\n0\n0\nDADO_EXTRA\n"
+            );
+
+            IllegalArgumentException exception
+                    = assertThrows(
+                            IllegalArgumentException.class,
+                            () -> reader.read(arquivo.toString())
+                    );
+
+            assertTrue(
+                    exception.getMessage().contains(
+                            "Dados adicionais no final do arquivo"
+                    )
+            );
+
+        } finally {
+            Files.deleteIfExists(arquivo);
+        }
     }
 
 }

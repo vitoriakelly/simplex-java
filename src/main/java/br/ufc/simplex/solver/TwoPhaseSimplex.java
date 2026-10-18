@@ -93,17 +93,7 @@ public class TwoPhaseSimplex {
 
                 cleanupCount[0]++;
 
-                System.out.println(
-                    "\n=== LIMPEZA DA BASE ==="
-                );
-
-                System.out.println(
-                    "Entrante: " + entering
-                );
-
-                System.out.println(
-                    "Sainte: " + leaving
-                );
+               
 
                 listener.onTableau(
                     "TRANSICAO",
