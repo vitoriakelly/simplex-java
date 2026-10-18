@@ -1,5 +1,8 @@
-
 package br.ufc.simplex;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
 import br.ufc.simplex.io.ProblemReader;
 import br.ufc.simplex.model.Constraint;
@@ -8,10 +11,6 @@ import br.ufc.simplex.output.TableauPrinter;
 import br.ufc.simplex.solver.SolutionStatus;
 import br.ufc.simplex.solver.StandardFormConverter;
 import br.ufc.simplex.solver.TwoPhaseSimplex;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 
 public class Main {
 
@@ -22,36 +21,33 @@ public class Main {
                 : "entradas/exemplo01.txt";
 
         try {
-            // Leitura do arquivo
             ProblemReader reader = new ProblemReader();
             LinearProgram problem = reader.read(filePath);
 
             System.out.println(
-                "=== PROBLEMA DE PROGRAMACAO LINEAR ==="
+                    "=== PROBLEMA DE PROGRAMACAO LINEAR ==="
             );
 
             System.out.println(
-                "Variaveis: " + problem.variableCount()
+                    "Variaveis: " + problem.variableCount()
             );
 
             System.out.println(
-                "Funcao objetivo: "
-                + Arrays.toString(problem.objective())
+                    "Funcao objetivo: "
+                    + Arrays.toString(problem.objective())
             );
 
             System.out.println("\nRestricoes:");
 
             for (Constraint constraint : problem.constraints()) {
                 System.out.println(
-                    Arrays.toString(constraint.coefficients())
-                    + " " + constraint.type()
-                    + " " + constraint.rightHandSide()
+                        Arrays.toString(constraint.coefficients())
+                        + " " + constraint.type()
+                        + " " + constraint.rightHandSide()
                 );
             }
-
-            // Exibir a forma padrao
-            StandardFormConverter converter =
-                    new StandardFormConverter();
+            StandardFormConverter converter
+                    = new StandardFormConverter();
 
             var standard = converter.convert(problem);
 
@@ -64,21 +60,21 @@ public class Main {
             for (int i = 0; i < standard.matrix().length; i++) {
 
                 System.out.print(
-                    "Restricao " + (i + 1) + ": "
+                        "Restricao " + (i + 1) + ": "
                 );
 
                 for (int j = 0; j < names.size(); j++) {
                     System.out.printf(
-                        Locale.US,
-                        "%8.2f ",
-                        standard.matrix()[i][j]
+                            Locale.US,
+                            "%8.2f ",
+                            standard.matrix()[i][j]
                     );
                 }
 
                 System.out.printf(
-                    Locale.US,
-                    " = %.2f%n",
-                    standard.rhs()[i]
+                        Locale.US,
+                        " = %.2f%n",
+                        standard.rhs()[i]
                 );
             }
 
@@ -94,103 +90,111 @@ public class Main {
                 System.out.println(names.get(index));
             }
 
-            // Executar o solucionador
             TwoPhaseSimplex solver = new TwoPhaseSimplex();
             TableauPrinter printer = new TableauPrinter();
 
             TwoPhaseSimplex.Result result = solver.solve(
-                problem,
-                (phase, iteration, tableau) -> {
+                    problem,
+                    (phase, iteration, tableau) -> {
 
-                    System.out.printf(
-                        "%n=== %s - ITERACAO %d ===%n",
-                        phase,
-                        iteration
-                    );
+                        System.out.printf(
+                                "%n=== %s - ITERACAO %d ===%n",
+                                phase,
+                                iteration
+                        );
 
-                    printer.print(tableau);
-                }
-            );
-
-            // Resultado da Fase I
-            System.out.println(
-                "\n=== RESULTADO DA FASE I ==="
+                        printer.print(tableau);
+                    }
             );
 
             System.out.println(
-                "Total de iteracoes: "
-                + result.phaseOneIterations()
+                    "\n=== RESULTADO DA FASE I ==="
+            );
+
+            System.out.println(
+                    "Total de iteracoes: "
+                    + result.phaseOneIterations()
             );
 
             System.out.printf(
-                Locale.US,
-                "Valor de W: %.6f%n",
-                result.phaseOneW()
+                    Locale.US,
+                    "Valor de W: %.6f%n",
+                    result.phaseOneW()
             );
 
             if (result.status() == SolutionStatus.INFEASIBLE) {
 
                 System.out.println(
-                    "STATUS: PROBLEMA INVIAVEL"
+                        "STATUS: PROBLEMA INVIAVEL"
                 );
 
                 return;
             }
 
             System.out.println(
-                "STATUS: SOLUCAO VIAVEL ENCONTRADA"
+                    "STATUS: SOLUCAO VIAVEL ENCONTRADA"
             );
 
-            // Resultado final
             System.out.println("\n=== RESULTADO FINAL ===");
 
             if (result.status() == SolutionStatus.UNBOUNDED) {
 
                 System.out.println(
-                    "STATUS: PROBLEMA ILIMITADO"
+                        "STATUS: PROBLEMA ILIMITADO"
                 );
 
             } else {
 
                 System.out.println(
-                    "STATUS: SOLUCAO OTIMA"
+                        "STATUS: SOLUCAO OTIMA"
                 );
 
                 double[] solution = result.solution();
 
                 for (int j = 0; j < solution.length; j++) {
                     System.out.printf(
-                        Locale.US,
-                        "x%d = %.6f%n",
-                        j + 1,
-                        solution[j]
+                            Locale.US,
+                            "x%d = %.6f%n",
+                            j + 1,
+                            solution[j]
                     );
                 }
 
                 System.out.printf(
-                    Locale.US,
-                    "Z maximo = %.6f%n",
-                    result.objectiveValue()
+                        Locale.US,
+                        "Z maximo = %.6f%n",
+                        result.objectiveValue()
                 );
             }
 
             System.out.println(
-                "Iteracoes da Fase I: "
-                + result.phaseOneIterations()
+                    "Iteracoes da Fase I: "
+                    + result.phaseOneIterations()
             );
 
             System.out.println(
-                "Iteracoes da Fase II: "
-                + result.phaseTwoIterations()
+                    "Iteracoes da Fase II: "
+                    + result.phaseTwoIterations()
+            );
+
+            System.out.println(
+                    "Pivoteamentos de limpeza: "
+                    + result.cleanupIterations()
+            );
+
+            System.out.println(
+                    "Total de pivoteamentos: "
+                    + result.totalIterations()
             );
 
         } catch (Exception e) {
 
             System.err.println(
-                "Erro: " + e.getMessage()
+                    "Erro: " + e.getMessage()
             );
 
             System.exit(1);
         }
     }
+
 }
