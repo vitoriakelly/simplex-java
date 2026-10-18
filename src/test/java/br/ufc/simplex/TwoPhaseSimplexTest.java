@@ -250,4 +250,32 @@ class TwoPhaseSimplexTest {
         }
     }
 
+    @Test
+    void deveResolverProblemaDegenerado() throws Exception {
+
+        ProblemReader reader = new ProblemReader();
+
+        var problem = reader.read(
+                "entradas/exemplo07.txt"
+        );
+
+        TwoPhaseSimplex solver = new TwoPhaseSimplex();
+
+        TwoPhaseSimplex.Result result = solver.solve(problem);
+
+        assertEquals(
+                SolutionStatus.OPTIMAL,
+                result.status()
+        );
+
+        assertEquals(2.0, result.solution()[0], 1e-6);
+        assertEquals(2.0, result.solution()[1], 1e-6);
+        assertEquals(10.0, result.objectiveValue(), 1e-6);
+
+        assertEquals(0, result.phaseOneIterations());
+        assertEquals(2, result.phaseTwoIterations());
+        assertEquals(0, result.cleanupIterations());
+        assertEquals(2, result.totalIterations());
+    }
+
 }

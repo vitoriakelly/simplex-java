@@ -152,11 +152,15 @@ public class Main {
                 double[] solution = result.solution();
 
                 for (int j = 0; j < solution.length; j++) {
+                    double value = Math.abs(solution[j]) < 1e-9
+                            ? 0.0
+                            : solution[j];
+
                     System.out.printf(
                             Locale.US,
                             "x%d = %.6f%n",
                             j + 1,
-                            solution[j]
+                            value
                     );
                 }
 
