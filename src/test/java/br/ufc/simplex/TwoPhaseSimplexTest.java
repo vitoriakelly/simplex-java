@@ -2,7 +2,9 @@
 package br.ufc.simplex;
 
 import org.junit.jupiter.api.Test;
-
+import br.ufc.simplex.io.ProblemReader;
+import br.ufc.simplex.solver.TwoPhaseSimplex;
+import br.ufc.simplex.solver.SolutionStatus;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -107,4 +109,42 @@ class TwoPhaseSimplexTest {
             "Z maximo = 12.000000"
         ));
     }
+
+@Test
+void solucionadorRetornaResultadoCorreto() throws Exception {
+
+    ProblemReader reader = new ProblemReader();
+
+    var problem =
+        reader.read("entradas/exemplo01.txt");
+
+    TwoPhaseSimplex solver = new TwoPhaseSimplex();
+
+    TwoPhaseSimplex.Result result =
+        solver.solve(problem);
+
+    assertEquals(
+        SolutionStatus.OPTIMAL,
+        result.status()
+    );
+
+    assertEquals(
+        5.0,
+        result.solution()[0],
+        1e-6
+    );
+
+    assertEquals(
+        5.0,
+        result.solution()[1],
+        1e-6
+    );
+
+    assertEquals(
+        35.0,
+        result.objectiveValue(),
+        1e-6
+    );
+}
+
 }

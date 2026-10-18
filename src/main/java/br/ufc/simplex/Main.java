@@ -4,9 +4,10 @@ package br.ufc.simplex;
 import br.ufc.simplex.io.ProblemReader;
 import br.ufc.simplex.model.Constraint;
 import br.ufc.simplex.model.LinearProgram;
-import br.ufc.simplex.solver.StandardFormConverter;
-import br.ufc.simplex.solver.Tableau;
 import br.ufc.simplex.output.TableauPrinter;
+import br.ufc.simplex.solver.SolutionStatus;
+import br.ufc.simplex.solver.StandardFormConverter;
+import br.ufc.simplex.solver.TwoPhaseSimplex;
 
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +22,7 @@ public class Main {
                 : "entradas/exemplo01.txt";
 
         try {
+            // Leitura do arquivo
             ProblemReader reader = new ProblemReader();
             LinearProgram problem = reader.read(filePath);
 
@@ -42,17 +44,16 @@ public class Main {
             for (Constraint constraint : problem.constraints()) {
                 System.out.println(
                     Arrays.toString(constraint.coefficients())
-                    + " "
-                    + constraint.type()
-                    + " "
-                    + constraint.rightHandSide()
+                    + " " + constraint.type()
+                    + " " + constraint.rightHandSide()
                 );
             }
+
+            // Exibir a forma padrao
             StandardFormConverter converter =
                     new StandardFormConverter();
 
-            StandardFormConverter.StandardForm standard =
-                    converter.convert(problem);
+            var standard = converter.convert(problem);
 
             System.out.println("\n=== FORMA PADRAO ===");
 
@@ -92,220 +93,96 @@ public class Main {
             for (int index : standard.artificialColumns()) {
                 System.out.println(names.get(index));
             }
-            Tableau tableau = new Tableau(standard);
 
+            // Executar o solucionador
+            TwoPhaseSimplex solver = new TwoPhaseSimplex();
             TableauPrinter printer = new TableauPrinter();
 
-            System.out.println("\n=== INICIANDO FASE I ===");
+            TwoPhaseSimplex.Result result = solver.solve(
+                problem,
+                (phase, iteration, tableau) -> {
 
-            printer.print(tableau);
-
-            int iterations = 0;
-            int maxIterations = 1000;
-
-            while (true) {
-
-                int entering =
-                        tableau.chooseEnteringVariable();
-
-                if (entering == -1) {
-                    break;
-                }
-
-                int leaving =
-                        tableau.chooseLeavingVariable(entering);
-
-                if (leaving == -1) {
-                    throw new IllegalStateException(
-                        "Nenhuma variavel sainte na Fase I."
-                    );
-                }
-
-                String enteringName =
-                    tableau.variableNames().get(entering);
-
-                String leavingName =
-                    tableau.variableNames().get(
-                        tableau.basis()[leaving]
+                    System.out.printf(
+                        "%n=== %s - ITERACAO %d ===%n",
+                        phase,
+                        iteration
                     );
 
-                System.out.println(
-                    "\n=== ITERACAO "
-                    + (iterations + 1)
-                    + " ==="
-                );
-
-                System.out.println(
-                    "Variavel entrante: " + enteringName
-                );
-
-                System.out.println(
-                    "Variavel sainte: " + leavingName
-                );
-
-                tableau.pivot(leaving, entering);
-
-                iterations++;
-
-                System.out.println("\nTableau atualizado:");
-
-                printer.print(tableau);
-
-                if (iterations >= maxIterations) {
-                    throw new IllegalStateException(
-                        "Limite de iteracoes atingido."
-                    );
+                    printer.print(tableau);
                 }
-            }
+            );
 
-            // 6. Verificar resultado da Fase I
-            // Estamos maximizando -W
-            double w = -tableau.objectiveValue();
-
-            if (Math.abs(w) < 1e-8) {
-                w = 0;
-            }
-
+            // Resultado da Fase I
             System.out.println(
                 "\n=== RESULTADO DA FASE I ==="
             );
 
             System.out.println(
-                "Total de iteracoes: " + iterations
+                "Total de iteracoes: "
+                + result.phaseOneIterations()
             );
 
             System.out.printf(
                 Locale.US,
                 "Valor de W: %.6f%n",
-                w
+                result.phaseOneW()
             );
 
-            if (w > 1e-8) {
+            if (result.status() == SolutionStatus.INFEASIBLE) {
 
                 System.out.println(
                     "STATUS: PROBLEMA INVIAVEL"
                 );
 
+                return;
+            }
+
+            System.out.println(
+                "STATUS: SOLUCAO VIAVEL ENCONTRADA"
+            );
+
+            // Resultado final
+            System.out.println("\n=== RESULTADO FINAL ===");
+
+            if (result.status() == SolutionStatus.UNBOUNDED) {
+
+                System.out.println(
+                    "STATUS: PROBLEMA ILIMITADO"
+                );
+
             } else {
 
                 System.out.println(
-                    "STATUS: SOLUCAO VIAVEL ENCONTRADA"
+                    "STATUS: SOLUCAO OTIMA"
                 );
 
-                System.out.println(
-                    "O problema pode prosseguir "
-                    + "para a Fase II."
+                double[] solution = result.solution();
+
+                for (int j = 0; j < solution.length; j++) {
+                    System.out.printf(
+                        Locale.US,
+                        "x%d = %.6f%n",
+                        j + 1,
+                        solution[j]
+                    );
+                }
+
+                System.out.printf(
+                    Locale.US,
+                    "Z maximo = %.6f%n",
+                    result.objectiveValue()
                 );
-
-// 7. Preparar a Fase II
-System.out.println("\n=== INICIANDO FASE II ===");
-
-Tableau phaseTwo = tableau.beginPhaseTwo(
-    problem.objective(),
-    standard.artificialColumns()
-);
-
-System.out.println("\nTableau inicial da Fase II:");
-printer.print(phaseTwo);
-
-// 8. Executar as iteracoes da Fase II
-int phaseTwoIterations = 0;
-boolean unbounded = false;
-
-while (true) {
-
-    int entering = phaseTwo.chooseEnteringVariable();
-
-    if (entering == -1) {
-        break;
-    }
-
-    int leaving = phaseTwo.chooseLeavingVariable(entering);
-
-    if (leaving == -1) {
-        unbounded = true;
-        break;
-    }
-
-    System.out.println(
-        "\n=== FASE II - ITERACAO "
-        + (phaseTwoIterations + 1)
-        + " ==="
-    );
-
-    System.out.println(
-        "Variavel entrante: "
-        + phaseTwo.variableNames().get(entering)
-    );
-
-    System.out.println(
-        "Variavel sainte: "
-        + phaseTwo.variableNames().get(
-            phaseTwo.basis()[leaving]
-        )
-    );
-
-    phaseTwo.pivot(leaving, entering);
-
-    phaseTwoIterations++;
-
-    printer.print(phaseTwo);
-
-    if (phaseTwoIterations >= maxIterations) {
-        throw new IllegalStateException(
-            "Limite de iteracoes da Fase II atingido."
-        );
-    }
-}
-
-// 9. Exibir o resultado final
-System.out.println("\n=== RESULTADO FINAL ===");
-
-if (unbounded) {
-
-    System.out.println("STATUS: PROBLEMA ILIMITADO");
-
-} else {
-
-    double[] solution =
-        new double[phaseTwo.variableNames().size()];
-
-    double[][] finalRows = phaseTwo.rows();
-    int[] finalBasis = phaseTwo.basis();
-
-    int rhsColumn = solution.length;
-
-    for (int i = 0; i < finalBasis.length; i++) {
-        solution[finalBasis[i]] = finalRows[i][rhsColumn];
-    }
-
-    System.out.println("STATUS: SOLUCAO OTIMA");
-
-    for (int j = 0; j < problem.variableCount(); j++) {
-        System.out.printf(
-            Locale.US,
-            "x%d = %.6f%n",
-            j + 1,
-            solution[j]
-        );
-    }
-
-    System.out.printf(
-        Locale.US,
-        "Z maximo = %.6f%n",
-        phaseTwo.objectiveValue()
-    );
-}
-
-System.out.println(
-    "Iteracoes da Fase I: " + iterations
-);
-
-System.out.println(
-    "Iteracoes da Fase II: " + phaseTwoIterations
-);
-
             }
+
+            System.out.println(
+                "Iteracoes da Fase I: "
+                + result.phaseOneIterations()
+            );
+
+            System.out.println(
+                "Iteracoes da Fase II: "
+                + result.phaseTwoIterations()
+            );
 
         } catch (Exception e) {
 
