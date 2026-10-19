@@ -1,67 +1,64 @@
 package br.ufc.simplex;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
 import br.ufc.simplex.io.ProblemReader;
-import br.ufc.simplex.model.Constraint;
 import br.ufc.simplex.model.LinearProgram;
+import br.ufc.simplex.output.ProblemFormatter;
+import br.ufc.simplex.output.SolutionReporter;
 import br.ufc.simplex.output.TableauPrinter;
 import br.ufc.simplex.solver.SolutionStatus;
 import br.ufc.simplex.solver.StandardFormConverter;
 import br.ufc.simplex.solver.TwoPhaseSimplex;
+import br.ufc.simplex.ui.SimplexFrame;
 
 public class Main {
 
     public static void main(String[] args) {
+        if (args.length == 0 || "--gui".equals(args[0])) {
+            SimplexFrame.launch();
+            return;
+        }
 
-        String filePath = args.length > 0
-                ? args[0]
-                : "entradas/exemplo01.txt";
+        if ("--help".equals(args[0]) || "-h".equals(args[0])) {
+            printHelp();
+            return;
+        }
 
+        runCli(args[0]);
+    }
+
+    private static void printHelp() {
+        System.out.println("Uso:");
+        System.out.println("  java -cp target/classes br.ufc.simplex.Main");
+        System.out.println("      Abre a interface grafica.");
+        System.out.println();
+        System.out.println("  java -cp target/classes br.ufc.simplex.Main <arquivo.txt>");
+        System.out.println("      Executa no terminal com saida detalhada.");
+        System.out.println();
+        System.out.println("  java -cp target/classes br.ufc.simplex.Main --gui");
+        System.out.println("      Forca a abertura da interface grafica.");
+    }
+
+    private static void runCli(String filePath) {
         try {
             ProblemReader reader = new ProblemReader();
             LinearProgram problem = reader.read(filePath);
 
-            System.out.println(
-                    "=== PROBLEMA DE PROGRAMACAO LINEAR ==="
-            );
+            System.out.println("=== PROBLEMA DE PROGRAMACAO LINEAR ===");
+            System.out.println();
+            System.out.print(ProblemFormatter.format(problem));
 
-            System.out.println(
-                    "Variaveis: " + problem.variableCount()
-            );
-
-            System.out.println(
-                    "Funcao objetivo: "
-                    + Arrays.toString(problem.objective())
-            );
-
-            System.out.println("\nRestricoes:");
-
-            for (Constraint constraint : problem.constraints()) {
-                System.out.println(
-                        Arrays.toString(constraint.coefficients())
-                        + " " + constraint.type()
-                        + " " + constraint.rightHandSide()
-                );
-            }
-            StandardFormConverter converter
-                    = new StandardFormConverter();
-
+            StandardFormConverter converter = new StandardFormConverter();
             var standard = converter.convert(problem);
 
-            System.out.println("\n=== FORMA PADRAO ===");
-
+            System.out.println("=== FORMA PADRAO ===");
             List<String> names = standard.variableNames();
-
             System.out.println("Variaveis: " + names);
 
             for (int i = 0; i < standard.matrix().length; i++) {
-
-                System.out.print(
-                        "Restricao " + (i + 1) + ": "
-                );
+                System.out.print("Restricao " + (i + 1) + ": ");
 
                 for (int j = 0; j < names.size(); j++) {
                     System.out.printf(
@@ -79,15 +76,17 @@ public class Main {
             }
 
             System.out.println("\nBase inicial:");
-
             for (int index : standard.basis()) {
-                System.out.println(names.get(index));
+                System.out.println("  " + names.get(index));
             }
 
             System.out.println("\nVariaveis artificiais:");
-
-            for (int index : standard.artificialColumns()) {
-                System.out.println(names.get(index));
+            if (standard.artificialColumns().isEmpty()) {
+                System.out.println("  (nenhuma)");
+            } else {
+                for (int index : standard.artificialColumns()) {
+                    System.out.println("  " + names.get(index));
+                }
             }
 
             TwoPhaseSimplex solver = new TwoPhaseSimplex();
@@ -96,26 +95,17 @@ public class Main {
             TwoPhaseSimplex.Result result = solver.solve(
                     problem,
                     (phase, iteration, tableau) -> {
-
-                        System.out.printf(
-                                "%n=== %s - ITERACAO %d ===%n",
-                                phase,
-                                iteration
-                        );
-
+                        System.out.println();
+                        System.out.println(phaseHeader(phase, iteration));
                         printer.print(tableau);
                     }
             );
 
+            System.out.println();
+            System.out.println("=== RESULTADO DA FASE I ===");
             System.out.println(
-                    "\n=== RESULTADO DA FASE I ==="
+                    "Total de iteracoes: " + result.phaseOneIterations()
             );
-
-            System.out.println(
-                    "Total de iteracoes: "
-                    + result.phaseOneIterations()
-            );
-
             System.out.printf(
                     Locale.US,
                     "Valor de W: %.6f%n",
@@ -123,82 +113,33 @@ public class Main {
             );
 
             if (result.status() == SolutionStatus.INFEASIBLE) {
-
-                System.out.println(
-                        "STATUS: PROBLEMA INVIAVEL"
-                );
-
+                System.out.println("STATUS: PROBLEMA INVIAVEL");
+                System.out.println();
+                System.out.print(SolutionReporter.format(result));
                 return;
             }
 
-            System.out.println(
-                    "STATUS: SOLUCAO VIAVEL ENCONTRADA"
-            );
-
-            System.out.println("\n=== RESULTADO FINAL ===");
-
-            if (result.status() == SolutionStatus.UNBOUNDED) {
-
-                System.out.println(
-                        "STATUS: PROBLEMA ILIMITADO"
-                );
-
-            } else {
-
-                System.out.println(
-                        "STATUS: SOLUCAO OTIMA"
-                );
-
-                double[] solution = result.solution();
-
-                for (int j = 0; j < solution.length; j++) {
-                    double value = Math.abs(solution[j]) < 1e-9
-                            ? 0.0
-                            : solution[j];
-
-                    System.out.printf(
-                            Locale.US,
-                            "x%d = %.6f%n",
-                            j + 1,
-                            value
-                    );
-                }
-
-                System.out.printf(
-                        Locale.US,
-                        "Z maximo = %.6f%n",
-                        result.objectiveValue()
-                );
-            }
-
-            System.out.println(
-                    "Iteracoes da Fase I: "
-                    + result.phaseOneIterations()
-            );
-
-            System.out.println(
-                    "Iteracoes da Fase II: "
-                    + result.phaseTwoIterations()
-            );
-
-            System.out.println(
-                    "Pivoteamentos de limpeza: "
-                    + result.cleanupIterations()
-            );
-
-            System.out.println(
-                    "Total de pivoteamentos: "
-                    + result.totalIterations()
-            );
+            System.out.println("STATUS: SOLUCAO VIAVEL ENCONTRADA");
+            System.out.println();
+            System.out.print(SolutionReporter.format(result));
 
         } catch (Exception e) {
-
-            System.err.println(
-                    "Erro: " + e.getMessage()
-            );
-
+            System.err.println("Erro: " + e.getMessage());
             System.exit(1);
         }
     }
 
+    private static String phaseHeader(String phase, int iteration) {
+        return switch (phase) {
+            case "FASE I" -> iteration == 0
+                    ? "=== FASE I (viabilidade) — tableau inicial ==="
+                    : "=== FASE I — iteracao " + iteration + " ===";
+            case "TRANSICAO" ->
+                    "=== TRANSICAO — limpeza de artificial #" + iteration + " ===";
+            case "FASE II" -> iteration == 0
+                    ? "=== FASE II (otimizacao) — tableau inicial ==="
+                    : "=== FASE II — iteracao " + iteration + " ===";
+            default -> "=== " + phase + " - ITERACAO " + iteration + " ===";
+        };
+    }
 }

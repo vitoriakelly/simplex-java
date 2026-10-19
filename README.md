@@ -36,6 +36,23 @@ mvn clean package
 
 ## Execução
 
+### Interface gráfica (recomendado)
+
+Sem argumentos, o programa abre uma janela didática com o problema em notação matemática, o passo a passo das fases e o resultado interpretado:
+
+```bash
+java -cp target/classes br.ufc.simplex.Main
+```
+
+Na interface você pode:
+
+- escolher um exemplo da pasta `entradas/`
+- abrir outro arquivo `.txt`
+- acompanhar Fase I (viabilidade), transição e Fase II (otimização)
+- ler o status final com interpretação (ótima, inviável ou ilimitada)
+
+### Terminal
+
 ```bash
 java -cp target/classes br.ufc.simplex.Main entradas/exemplo01.txt
 ```
@@ -98,7 +115,8 @@ simplex-java/
 │   │   ├── io/
 │   │   ├── model/
 │   │   ├── output/
-│   │   └── solver/
+│   │   ├── solver/
+│   │   └── ui/
 │   └── test/java/br/ufc/simplex/
 ├── pom.xml
 └── README.md

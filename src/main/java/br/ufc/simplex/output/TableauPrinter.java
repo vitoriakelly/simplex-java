@@ -1,6 +1,7 @@
-
 package br.ufc.simplex.output;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Locale;
 
@@ -8,49 +9,49 @@ import br.ufc.simplex.solver.Tableau;
 
 public class TableauPrinter {
 
-    private static final int WIDTH = 12;
-
     public void print(Tableau tableau) {
+        print(tableau, new PrintWriter(System.out, true));
+    }
 
+    public String format(Tableau tableau) {
+        StringWriter buffer = new StringWriter();
+        print(tableau, new PrintWriter(buffer, true));
+        return buffer.toString();
+    }
+
+    public void print(Tableau tableau, PrintWriter out) {
         double[][] rows = tableau.rows();
         int[] basis = tableau.basis();
         List<String> names = tableau.variableNames();
 
-        System.out.printf("%-10s", "Base");
+        out.printf("%-10s", "Base");
 
         for (String name : names) {
-            System.out.printf("%12s", name);
+            out.printf("%12s", name);
         }
 
-        System.out.printf("%12s%n", "b");
+        out.printf("%12s%n", "b");
 
         for (int i = 0; i < rows.length; i++) {
-
-            System.out.printf(
-                "%-10s", names.get(basis[i])
-            );
+            out.printf("%-10s", names.get(basis[i]));
 
             for (double value : rows[i]) {
-                System.out.printf(
-                    Locale.US, "%12.2f", value
-                );
+                out.printf(Locale.US, "%12.2f", value);
             }
 
-            System.out.println();
+            out.println();
         }
 
-        System.out.printf("%-10s", "Cj-Zj");
+        out.printf("%-10s", "Cj-Zj");
 
         for (double value : tableau.reducedCosts()) {
-            System.out.printf(
-                Locale.US, "%12.2f", value
-            );
+            out.printf(Locale.US, "%12.2f", value);
         }
 
-        System.out.printf(
-            Locale.US,
-            "%12.2f%n",
-            tableau.objectiveValue()
+        out.printf(
+                Locale.US,
+                "%12.2f%n",
+                tableau.objectiveValue()
         );
     }
 }
