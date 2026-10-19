@@ -23,7 +23,6 @@ public class Tableau {
     private final int[] basis;
     private final List<String> variableNames;
 
-    // Construir o tableau inicial da Fase I
     public Tableau(
             StandardFormConverter.StandardForm standard) {
 
@@ -295,11 +294,9 @@ public class Tableau {
                 }
             }
 
-            // Copiar lado direito
             newRows[newRow][newNames.size()] =
                 rows[i][costs.length];
 
-            // Atualizar indice da variavel basica
             newBasis[newRow] = columnMap[basis[i]];
 
             if (newBasis[newRow] < 0) {
@@ -311,7 +308,6 @@ public class Tableau {
             newRow++;
         }
 
-        // Recuperar funcao objetivo original
         double[] newCosts = new double[newNames.size()];
 
         if (originalObjective.length > newCosts.length) {
